@@ -43,16 +43,15 @@ function ThreeComponent() {
       0.1,
       1000
     );
-    camera.position.set(0, 3, 5); // Mejor posición para ver el agua
+    camera.position.set(0, 3, 5);
 
     const renderer = new Three.WebGLRenderer({ 
       canvas: canvasRef.current,
       antialias: true 
     });
     renderer.setSize(window.innerWidth - 300, window.innerHeight - 150);
-    //renderer.setClearColor(0x87CEEB); // Color cielo
 
-    
+    // Agua
     const water = new Three.PlaneGeometry(50, 29, 200, 100);
     const watermaterial = new Three.PointsMaterial({ 
       size: 0.005,
@@ -63,16 +62,47 @@ function ThreeComponent() {
     watermesh.position.y = -1.5;
     watermesh.position.z = -1.5;
 
+    const reflectionCount = 800;
+    const reflectionGeometry = new Three.BufferGeometry();
+    const reflectionPositions = new Float32Array(reflectionCount * 3);
+    const reflectionColors = new Float32Array(reflectionCount * 3);
+
     
+    for (let i = 0; i < reflectionCount; i++) {
+      const i3 = i * 3;
+      reflectionPositions[i3] = (Math.random() - 0.5) * 50; // X
+      reflectionPositions[i3 + 1] = -1.4; // Y (ligeramente arriba del agua)
+      reflectionPositions[i3 + 2] = (Math.random() - 0.5) * 29 - 1.5; // Z      
+      
+      reflectionColors[i3] = 1.0;     // R
+      reflectionColors[i3 + 1] = 0.8; // G  
+      reflectionColors[i3 + 2] = 0.3; // B
+    }
+
+    reflectionGeometry.setAttribute('position', new Three.BufferAttribute(reflectionPositions, 3));
+    reflectionGeometry.setAttribute('color', new Three.BufferAttribute(reflectionColors, 3));
+
+    const reflectionMaterial = new Three.PointsMaterial({
+      size: 0.012,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.9,
+      blending: Three.AdditiveBlending
+    });
+
+    const reflectionMesh = new Three.Points(reflectionGeometry, reflectionMaterial);
+    scene.add(reflectionMesh);
+
+    //sol
     const torus = new Three.TorusGeometry(0.05, 0.5, 16, 50);
     const material = new Three.PointsMaterial({ 
       size: 0.005,
-      color: 0xFFD700 
+      color: 0xffe769 
     });
     const torusmesh = new Three.Points(torus, material);
     torusmesh.position.z = -10.5;
     torusmesh.position.x = 12.5;
-    torusmesh.position.y = 8.5;
+    torusmesh.position.y = 8.5;    
 
     scene.add(torusmesh);
     scene.add(watermesh);
@@ -91,6 +121,7 @@ function ThreeComponent() {
       frameId = requestAnimationFrame(animateWater);
       const t = time * 0.001;
 
+      // Animar agua
       for (let i = 0; i < waterWaves.count; i++) {
         const x = waterWaves.getX(i);
         const y = waterWaves.getY(i);
@@ -98,13 +129,12 @@ function ThreeComponent() {
         
         let zOffset = noise3D(x * 0.8, y * 0.8, t) * 0.2;
 
-        
         for (const impact of impacts) {
           const dx = x - impact.x;
           const dy = y - impact.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           
-          if (dist < impact.radius * 5) { // Radio de influencia más amplio
+          if (dist < impact.radius * 5) {
             const elapsed = (performance.now() - impact.time) / 1000;
             const decay = Math.exp(-dist / impact.radius);
             const ripple = Math.sin(dist * 2 - elapsed * 8) * decay;
@@ -116,11 +146,54 @@ function ThreeComponent() {
 
         waterWaves.setZ(i, zBase + zOffset);
       }
-
       waterWaves.needsUpdate = true;
+      
+      const reflectionPositionsArray = reflectionGeometry.attributes.position.array;
+      const reflectionColorsArray = reflectionGeometry.attributes.color.array;
+      const sunPos = torusmesh.position;
+      
+      for (let i = 0; i < reflectionCount; i++) {
+        const i3 = i * 3;
+        const x = reflectionPositionsArray[i3];
+        const z = reflectionPositionsArray[i3 + 2];
+        
+        // Calcular distancia al sol
+        const dx = x - sunPos.x;
+        const dz = z - sunPos.z;
+        const distToSun = Math.sqrt(dx * dx + dz * dz);
+        
+        // Intensidad del sol
+        const rayIntensity = Math.max(0, 1 - distToSun / 20);
+        
+        // Efecto de ondas que hace que los reflejos parpadeen
+        const waveEffect1 = Math.sin(t * 3 + x * 0.1) * Math.sin(t * 2.5 + z * 0.1);
+        const waveEffect2 = Math.sin(t * 4 + (x + z) * 0.05);
+        const combinedWave = (waveEffect1 + waveEffect2) * 0.5;
+        const finalIntensity = rayIntensity * (0.3 + combinedWave * 0.7);
+        
+        // Solo mostrar partículas donde hay intensidad suficiente
+        if (finalIntensity > 0.1) {
+          const intensity = Math.max(0, finalIntensity);
+          reflectionColorsArray[i3] = intensity;           // R
+          reflectionColorsArray[i3 + 1] = intensity * 0.8; // G
+          reflectionColorsArray[i3 + 2] = intensity * 0.4; // B          
+          
+          reflectionPositionsArray[i3 + 1] = -1.35 + Math.sin(t * 4 + i * 0.1) * 0.03;
+        } else {
+          // Ocultar partículas donde no hay reflejo
+          reflectionColorsArray[i3] = 0;
+          reflectionColorsArray[i3 + 1] = 0;
+          reflectionColorsArray[i3 + 2] = 0;
+        }
+      }
+      
+      reflectionGeometry.attributes.position.needsUpdate = true;
+      reflectionGeometry.attributes.color.needsUpdate = true;
             
       torusmesh.rotation.x += 0.01;
       torusmesh.rotation.y += 0.01;
+      torusmesh.scale.setScalar(1 + Math.sin(t * 2) * 0.05);
+
       
       renderer.render(scene, camera);
     }
@@ -130,43 +203,32 @@ function ThreeComponent() {
 
       const rect = canvasRef.current.getBoundingClientRect();
       
-      // Coordenadas normalizadas del mouse (-1 a 1)
       const mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       const mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-      // Crear raycaster
       const raycaster = new Three.Raycaster();
       const mouse = new Three.Vector2(mouseX, mouseY);
       raycaster.setFromCamera(mouse, camera);
 
-      // CORRECCIÓN: Usar intersectObject directamente con el watermesh
       const intersects = raycaster.intersectObject(watermesh);
       
       if (intersects.length > 0) {
         const point = intersects[0].point;
         
-        // Las coordenadas ya están en el espacio del mundo
-        // Solo necesitamos mapearlas al espacio local de la geometría
-        // Dado que el agua está rotada en X y posicionada, convertimos:
-        const localX = point.x; // X se mantiene igual
-        const localY = -(point.z - watermesh.position.z); // Z del mundo se convierte en Y local
+        const localX = point.x; 
+        const localY = -(point.z - watermesh.position.z);
         
         console.log('Click en mundo:', point.x, point.y, point.z);
         console.log('Coordenadas locales:', localX, localY);
         
-        // Verificar que el punto esté dentro de los límites del agua
         if (Math.abs(localX) <= 25 && Math.abs(localY) <= 14.5) {
           createImpact(localX, localY, 0.3, 2.0);
         }
       }
     }
     
-
-
-    // Event listeners
     canvasRef.current.addEventListener("click", onClick);    
 
-    
     animateWater(0);
 
     return () => {
@@ -176,6 +238,8 @@ function ThreeComponent() {
       torus.dispose();
       watermaterial.dispose();
       material.dispose();
+      reflectionGeometry.dispose();
+      reflectionMaterial.dispose();
       scene.clear();
       
       if (canvasRef.current) {
@@ -187,12 +251,12 @@ function ThreeComponent() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-black">
       <div className="mb-4 text-center">
-        <h2 className="text-white text-xl font-semibold mb-2">Simulación de Océano</h2>
-        <p className="text-white">Haz click en el agua para crear ondas</p>
+        <h2 className="text-white text-xl font-semibold mb-2">Ocean Sim</h2>
+        <p className="text-white">Pro tip: click</p>
       </div>
       <canvas 
         ref={canvasRef}
-        className="border border-gray-300 rounded-lg shadow-lg"
+        className=""
       />
     </div>
   );
