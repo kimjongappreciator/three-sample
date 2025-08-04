@@ -4,10 +4,7 @@ function App() {
 
   return (
     <>
-      <div>
-        <p className="text-2xl text-center text-gray-800">
-          Welcome to the React App with Tailwind CSS
-        </p>
+      <div className="bg-black">        
         <ThreeComponent />
       </div>
     </>
