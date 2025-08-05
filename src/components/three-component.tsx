@@ -13,7 +13,7 @@ interface Impact {
 }
 let impacts: Impact[] = [];
 
-function createImpact(x: number, y: number, strength = 1, radius = 1) {
+function createImpact(x: number, y: number, strength = 100, radius =50) {
   console.log('Impacto creado en:', x, y);
   impacts.push({
     x,
