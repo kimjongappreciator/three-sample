@@ -71,7 +71,7 @@ function ThreeComponent() {
     for (let i = 0; i < reflectionCount; i++) {
       const i3 = i * 3;
       reflectionPositions[i3] = (Math.random() - 0.5) * 50; // X
-      reflectionPositions[i3 + 1] = -1.4; // Y (ligeramente arriba del agua)
+      reflectionPositions[i3 + 1] = -1.4; // ligeramente arriba del agua
       reflectionPositions[i3 + 2] = (Math.random() - 0.5) * 29 - 1.5; // Z      
       
       reflectionColors[i3] = 1.0;     // R
