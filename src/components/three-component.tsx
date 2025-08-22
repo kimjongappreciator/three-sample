@@ -13,8 +13,8 @@ interface Impact {
 }
 let impacts: Impact[] = [];
 
-function createImpact(x: number, y: number, strength = 100, radius =50) {
-  console.log('Impacto creado en:', x, y);
+function createImpact(x: number, y: number, strength = 1, radius =1) {
+  console.log('Impacto creado en:', x, y, 'Fuerza:', strength, 'Radio:', radius);
   impacts.push({
     x,
     y,
@@ -222,7 +222,7 @@ function ThreeComponent() {
         console.log('Coordenadas locales:', localX, localY);
         
         if (Math.abs(localX) <= 25 && Math.abs(localY) <= 14.5) {
-          createImpact(localX, localY, 0.3, 2.0);
+          createImpact(localX, localY, 0.5, 2.0);
         }
       }
     }
