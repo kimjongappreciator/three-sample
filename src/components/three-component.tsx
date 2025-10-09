@@ -23,7 +23,7 @@ function createImpact(x: number, y: number, strength = 1, radius =1) {
     radius,
   });
   
-  // Limpiar impactos antiguos para evitar memory leak
+  // max 5 sec de vida
   impacts = impacts.filter(impact => 
     (performance.now() - impact.time) < 5000 // 5 segundos
   );
@@ -51,7 +51,7 @@ function ThreeComponent() {
     });
     renderer.setSize(window.innerWidth - 300, window.innerHeight - 150);
 
-    // Agua
+    // mesh agua
     const water = new Three.PlaneGeometry(50, 29, 200, 100);
     const watermaterial = new Three.PointsMaterial({ 
       size: 0.005,
@@ -121,7 +121,7 @@ function ThreeComponent() {
       frameId = requestAnimationFrame(animateWater);
       const t = time * 0.001;
 
-      // Animar agua
+      // agua
       for (let i = 0; i < waterWaves.count; i++) {
         const x = waterWaves.getX(i);
         const y = waterWaves.getY(i);
@@ -157,21 +157,19 @@ function ThreeComponent() {
         const x = reflectionPositionsArray[i3];
         const z = reflectionPositionsArray[i3 + 2];
         
-        // Calcular distancia al sol
+        // distancia al sol
         const dx = x - sunPos.x;
         const dz = z - sunPos.z;
-        const distToSun = Math.sqrt(dx * dx + dz * dz);
+        const distToSun = Math.sqrt(dx * dx + dz * dz);        
         
-        // Intensidad del sol
-        const rayIntensity = Math.max(0, 1 - distToSun / 20);
+        const rayIntensity = Math.max(0, 1 - distToSun / 20);        
         
-        // Efecto de ondas que hace que los reflejos parpadeen
         const waveEffect1 = Math.sin(t * 3 + x * 0.1) * Math.sin(t * 2.5 + z * 0.1);
         const waveEffect2 = Math.sin(t * 4 + (x + z) * 0.05);
         const combinedWave = (waveEffect1 + waveEffect2) * 0.5;
         const finalIntensity = rayIntensity * (0.3 + combinedWave * 0.7);
         
-        // Solo mostrar partículas donde hay intensidad suficiente
+        // particulas
         if (finalIntensity > 0.1) {
           const intensity = Math.max(0, finalIntensity);
           reflectionColorsArray[i3] = intensity;           // R
